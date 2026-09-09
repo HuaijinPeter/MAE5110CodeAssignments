@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from models import pendulum as model
-from integrators import explicit_euler as integrator
 # from integrators import rk4 as integrator
+from integrators import explicit_euler as integrator
 
 
 # Basic simulation of the pendulum
@@ -19,7 +19,7 @@ params = {
 # some set-up
 initial_state = np.array([np.pi / 4, 0.0])
 
-
+# timestep = 1e-5 #original
 
 
 def run_simulation(timestep):
@@ -47,38 +47,33 @@ def run_simulation(timestep):
     # set a threshold as 0.01
     stable = np.all(np.abs(relative_energy_error) < 0.01)
     print(np.max(np.abs(relative_energy_error)))
-    return time_traj, state_traj, kinetic_energy, potential_energy, total_energy, stable
+    return stable,relative_energy_error
+
+# timesteps = [
+#     1e-5,
+#     5e-5,
+#     1e-4,
+#     2e-4, # take this for explicit euler
+#     2.5e-4,
+#     3e-4,
+#     5e-4,
+
+# ]
+
+timesteps = [
+
+    1e-1,
+    1.5e-1, # take this for rk4
+    2e-1,
+    5e-1,
 
 
-timestep = 2e-4
+]
 
-(
-        time_traj,
-        state_traj,
-        kinetic_energy,
-        potential_energy,
-        total_energy,
+for timestep in timesteps:
+    (
         stable,
+        relative_energy_error
     ) = run_simulation(timestep)
 
-print(f"timestep = {timestep:.5f}, stable = {stable}")
-
-plt.figure()
-plt.plot(time_traj, potential_energy, label="Potential energy")
-plt.plot(time_traj, kinetic_energy, label="Kinetic energy")
-plt.plot(time_traj, potential_energy + kinetic_energy, label="Total energy")
-plt.xlabel("Time (s)")
-plt.ylabel("Energy (J)")
-plt.title("Pendulum energy")
-plt.legend()
-plt.tight_layout()
-plt.show()
-
-# # TODO: make a phase portrait plot
-# plt.figure()
-# plt.plot(state_traj[0, :], state_traj[1, :])
-# plt.xlabel("Angle (rad)")
-# plt.ylabel("Angular velocity (rad/s)")
-# plt.title("Phase portrait of pendulum")
-# plt.tight_layout()
-# plt.show()
+    print(f"timestep = {timestep:.5f}, stable = {stable}")
