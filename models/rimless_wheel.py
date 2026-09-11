@@ -33,6 +33,7 @@ def calculate_alpha(params):
 
 
 def detect_impact(state, params):
+    """Detect a forward (downhill) spoke impact."""
     angle = state[0]
     angular_velocity = state[1]
     slope = params["slope"]
@@ -42,14 +43,44 @@ def detect_impact(state, params):
     return angle >= impact_angle and angular_velocity > 0
 
 
+def detect_backward_impact(state, params):
+    """Detect a backward (uphill) spoke impact."""
+    angle = state[0]
+    angular_velocity = state[1]
+    slope = params["slope"]
+    alpha = calculate_alpha(params)
+    impact_angle = slope - alpha
+
+    return angle <= impact_angle and angular_velocity < 0
+
+
 
 def apply_impact(state, params):
+    """Apply the forward-impact coordinate and velocity reset."""
     angular_velocity = state[1]
 
     slope = params["slope"]
     alpha = calculate_alpha(params)
 
     new_angle = slope - alpha
+    new_angular_velocity = angular_velocity * np.cos(2 * alpha)
+
+    new_state = np.array([
+        new_angle,
+        new_angular_velocity,
+    ])
+
+    return new_state
+
+
+def apply_backward_impact(state, params):
+    """Apply the backward-impact coordinate and velocity reset."""
+    angular_velocity = state[1]
+
+    slope = params["slope"]
+    alpha = calculate_alpha(params)
+
+    new_angle = slope + alpha
     new_angular_velocity = angular_velocity * np.cos(2 * alpha)
 
     new_state = np.array([

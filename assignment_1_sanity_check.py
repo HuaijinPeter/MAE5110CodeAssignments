@@ -54,3 +54,34 @@ print(
     "new angular velocity =",
     state_after_impact[1],
 )
+
+
+# backward-impact guard and reset
+state_before_backward_impact = np.array([
+    params["slope"] - alpha,
+    -2.0,
+])
+
+print(
+    "backward impact detected =",
+    model.detect_backward_impact(
+        state_before_backward_impact,
+        params,
+    ),
+)
+
+state_after_backward_impact = (
+    model.apply_backward_impact(
+        state_before_backward_impact,
+        params,
+    )
+)
+
+print(
+    "backward-reset angle =",
+    np.rad2deg(state_after_backward_impact[0]),
+)
+print(
+    "backward-reset angular velocity =",
+    state_after_backward_impact[1],
+)
