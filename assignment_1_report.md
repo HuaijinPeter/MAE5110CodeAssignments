@@ -8,13 +8,13 @@ From the repository root, install the environment once:
 uv sync --python 3.14
 ```
 
-Run the sanity checks:+
+Run the sanity checks:
 
 ```console
-uv run python assignment_1_sanity_check.py+
+uv run python assignment_1_sanity_check.py
 ```
 
-Run each experiment with the following copy/paste commands:
+Run the experiments:
 
 ```console
 uv run python assignment_1.py --experiment initial
@@ -24,25 +24,18 @@ uv run python assignment_1.py --experiment slope_sweep
 uv run python assignment_1.py --experiment spoke_sweep
 ```
 
-The RoA and parameter sweeps are brute-force calculations and take longer than
-the initial-condition and return-map experiments. Figures and numerical data
-are saved under `results/assignment_1/`.
-
 ## Model implementation
 
-The wheel has $N$ massless spokes of length $l$, with a point mass at the
-hub. The half-angle between adjacent spokes is
+The wheel has $N$ massless spokes of length $l$ and a point mass at the hub. The half-angle between adjacent spokes is
 
 $$
-\alpha = \frac{\pi}{N}.
+\alpha=\frac{\pi}{N}.
 $$
 
-The state is $x=[\theta,\dot\theta]$, where $\theta$ is measured from the
-upward vertical and is positive downhill. While one spoke is in contact with
-the ground, the wheel follows the inverted-pendulum dynamics
+The state is $x=[\theta,\dot\theta]$, where $\theta$ is measured from the upward vertical and is positive downhill. During a swing,
 
 $$
-\dot x =
+\dot x=
 \begin{bmatrix}
 \dot\theta\\
 \dfrac{g}{l}\sin\theta
@@ -52,16 +45,14 @@ $$
 At a forward impact,
 
 $$
-\theta^- = \gamma+\alpha,
+\theta^-=\gamma+\alpha,
 \qquad
-\theta^+ = \gamma-\alpha,
+\theta^+=\gamma-\alpha,
 \qquad
-\dot\theta^+ = \dot\theta^-\cos(2\alpha).
+\dot\theta^+=\dot\theta^-\cos(2\alpha).
 $$
 
-The implementation also includes the corresponding backward impact so that
-initial conditions with negative angular velocity can be classified. The
-default parameters used for the main experiments are:
+The backward impact is also implemented so that states with negative angular velocity can be classified.
 
 | Parameter | Value |
 |---|---:|
@@ -73,8 +64,7 @@ default parameters used for the main experiments are:
 
 ## Sanity checks
 
-The sanity checks separately test the geometry, continuous dynamics, event
-guards, and collision resets.
+The sanity checks test the geometry, continuous dynamics, event guards, and collision resets.
 
 | Check | Expected result | Observed result |
 |---|---|---|
@@ -82,12 +72,10 @@ guards, and collision resets.
 | Dynamics at $[\theta,\dot\theta]=[0.1,0]$ | $[0,9.81\sin(0.1)]\approx[0,0.97937]$ | $[0,0.97937]$ |
 | Forward guard below contact | No impact at $20^\circ$ | `False` |
 | Forward guard at contact | Impact at $\gamma+\alpha=27.5^\circ$ | `True` |
-| Forward reset from $\dot\theta^-=2$ | $\theta^+=-17.5^\circ$, $\dot\theta^+=2\cos45^\circ=1.41421$ | $-17.5^\circ,1.41421$ |
+| Forward reset from $\dot\theta^-=2$ | $\theta^+=-17.5^\circ$, $\dot\theta^+=1.41421$ | $-17.5^\circ,1.41421$ |
 | Backward reset from $\dot\theta^-=-2$ | $\theta^+=27.5^\circ$, $\dot\theta^+=-1.41421$ | $27.5^\circ,-1.41421$ |
 
-All checks matched their expected values. In particular, the velocity retains
-its direction and is reduced by the plastic-impact factor
-$\cos(2\alpha)$.
+All checks matched the expected values.
 
 ## Regions of attraction
 
@@ -99,18 +87,11 @@ $$
 \dot\theta\in[-3,3]\ \mathrm{rad/s}.
 $$
 
-Each initial condition was integrated with RK4 using
-$\Delta t=10^{-3}\ \mathrm{s}$, for at most 40 seconds. A trajectory that
-completed 20 consecutive forward impacts was classified as converging to the
-rolling limit cycle. If its post-impact energy could no longer carry the hub
-over the upright configuration, the dissipative rocking sequence was
-classified as converging to the stable two-spoke resting configuration. A
-third label records trajectories that cannot be classified within the time
-limit.
+Each initial condition was simulated with RK4 using $\Delta t=10^{-3}\ \mathrm{s}$ for at most 40 s. A trajectory completing 20 consecutive forward impacts was classified as converging to the rolling limit cycle. If collision losses left insufficient energy to pass the upright configuration, it was classified as converging to the stable two-spoke resting configuration. A third label was used for unresolved cases.
 
 ![Regions of attraction](results/assignment_1/roa/roa.png)
 
-For the default parameters, the sampled basin fractions were:
+For the default parameters:
 
 | Attractor | Fraction |
 |---|---:|
@@ -118,42 +99,31 @@ For the default parameters, the sampled basin fractions were:
 | Rolling limit cycle | 0.48305 |
 | Unresolved | 0.00000 |
 
-The square markers show the two reduced-coordinate representations of the
-same resting contact configuration. The white dashed curve is the rolling
-hybrid limit cycle. For positive initial velocity, the numerical boundary
-agrees with the black energy-based boundary. Negative initial velocities
-produce several bands because the wheel may take different numbers of uphill
-steps before collision losses either trap it at rest or allow it to reverse
-and approach the downhill rolling cycle.
+The square markers represent the same resting contact configuration in two reduced-coordinate forms. The white dashed curve is the rolling hybrid limit cycle. For positive initial velocity, the numerical basin boundary agrees with the energy-based boundary. Negative initial velocities form several bands because the wheel may take different numbers of uphill steps before settling or reversing into downhill rolling.
 
 ## Poincaré return map and Floquet multiplier
 
-I used the post-impact contact state
-$\theta=\gamma-\alpha$ as the Poincaré section and evaluated one forward
-step for 151 initial angular velocities between 0.5 and 2.0 rad/s. The return
-map used $\Delta t=10^{-4}\ \mathrm{s}$.
+I used the post-impact state $\theta=\gamma-\alpha$ as the Poincaré section and mapped the current post-impact angular velocity to the next one. The map used 151 velocities from 0.5 to 2.0 rad/s with $\Delta t=10^{-4}\ \mathrm{s}$.
 
 ![One-dimensional Poincaré return map](results/assignment_1/return_map/return_map.png)
 
-The intersection with the identity line gives
+The fixed point is
 
 $$
-\dot\theta^* = 1.14422\ \mathrm{rad/s}.
+\dot\theta^*=1.14422\ \mathrm{rad/s}.
 $$
 
-As a consistency check, conservation of energy during a swing and the impact
-reset give a theoretical fixed point of $1.14402\ \mathrm{rad/s}$, an
-absolute difference of approximately $2.1\times10^{-4}\ \mathrm{rad/s}$.
+The theoretical value from swing energy conservation and the impact reset is $1.14402\ \mathrm{rad/s}$.
 
-I estimated the local return-map slope by perturbing the fixed point on both
-sides by $0.01\ \mathrm{rad/s}$ and using
-$\Delta t=10^{-5}\ \mathrm{s}$:
+Using perturbations of $\pm0.01\ \mathrm{rad/s}$ around the fixed point with $\Delta t=10^{-5}\ \mathrm{s}$,
 
 $$
-\lambda \approx
+\lambda\approx
 \frac{P(\dot\theta^*+0.01)-P(\dot\theta^*-0.01)}{0.02}
 =0.49929.
 $$
+
+$\lambda$ is similar to the slope of the blue return map at the intersection point.
 
 The theoretical multiplier is
 
@@ -161,12 +131,11 @@ $$
 \lambda_{\mathrm{theory}}=\cos^2(2\alpha)=0.5.
 $$
 
-Because $|\lambda|<1$, the rolling fixed point of the return map, and hence
-the rolling limit cycle, is locally stable.
+Since $|\lambda|<1$, the rolling limit cycle is locally stable.
 
 ## Effect of slope
 
-I swept the slope from $2^\circ$ through $8^\circ$, keeping $N=8$.
+I swept the slope from $2^\circ$ to $8^\circ$ with $N=8$.
 
 | Slope | Rolling RoA | Resting RoA | Unresolved | Fixed-point speed (rad/s) | Floquet multiplier |
 |---:|---:|---:|---:|---:|---:|
@@ -182,23 +151,13 @@ I swept the slope from $2^\circ$ through $8^\circ$, keeping $N=8$.
 |---|---|
 | ![Slope versus RoA](results/assignment_1/slope_sweep/slope_vs_roa.png) | ![Slope versus Floquet multiplier](results/assignment_1/slope_sweep/slope_vs_floquet.png) |
 
-For this wheel, the theoretical onset of a viable rolling cycle is
-approximately $3.91^\circ$. This explains why no rolling cycle was found at
-$2^\circ$ or $3^\circ$, while one appears at $4^\circ$. Increasing slope
-adds more gravitational energy per step, so the rolling basin grows and the
-resting basin shrinks. The rolling fixed-point velocity also increases.
+The theoretical onset of sustained rolling is about $3.91^\circ$, consistent with the absence of a rolling cycle at $2^\circ$ and $3^\circ$. As slope increases, the rolling basin and fixed-point speed increase.
 
-The Floquet multiplier stays near 0.5 because, for fixed $N$, its theoretical
-value $\cos^2(2\alpha)$ does not depend on slope. The maximum numerical
-deviation from theory in the viable cases was less than $9.9\times10^{-4}$.
-The very small unresolved fractions at $3^\circ$ and $6^\circ$ each
-correspond to one grid point at the unstable upright equilibrium
-$(\theta,\dot\theta)=(0,0)$, rather than a stable attractor.
+The Floquet multiplier stays near 0.5 because $\cos^2(2\alpha)$ is independent of slope for fixed $N$. The maximum numerical deviation from theory was below $9.9\times10^{-4}$. The unresolved cases at $3^\circ$ and $6^\circ$ are single grid points at the unstable upright equilibrium $(\theta,\dot\theta)=(0,0)$.
 
 ## Effect of the number of spokes
 
-I swept all integer spoke counts from 6 through 12 at a fixed $5^\circ$
-slope.
+I swept $N=6$ through $12$ at a fixed $5^\circ$ slope.
 
 | Spokes | Rolling RoA | Resting RoA | Fixed-point speed (rad/s) | Numerical / theoretical Floquet |
 |---:|---:|---:|---:|---:|
@@ -214,25 +173,10 @@ slope.
 |---|---|
 | ![Spoke count versus RoA](results/assignment_1/spoke_sweep/spokes_vs_roa.png) | ![Spoke count versus Floquet multiplier](results/assignment_1/spoke_sweep/spokes_vs_floquet.png) |
 
-At a $5^\circ$ slope, wheels with 6 or 7 spokes do not have enough
-post-impact energy to sustain the rolling cycle. The viable cycle first
-appears at $N=8$. As $N$ increases, the angle between spokes and the
-energy loss at each collision decrease. Consequently, the rolling RoA grows
-from 0.4870 at $N=8$ to 0.8127 at $N=12$.
+At a $5^\circ$ slope, $N=6$ and $N=7$ do not sustain the rolling cycle. From $N=8$ onward, increasing the spoke count reduces the angle between spokes and the energy lost at impact, so the rolling basin grows.
 
-At the same time, the multiplier increases toward one, from approximately 0.5
-to 0.75. Therefore, more spokes make sustained rolling accessible from more
-initial conditions but make local convergence to the final cycle slower. The
-numerical multipliers closely follow $\cos^2(2\pi/N)$; the maximum absolute
-error was approximately $1.5\times10^{-3}$.
+The Floquet multiplier increases from about 0.5 at $N=8$ to 0.75 at $N=12$, so local convergence per step becomes slower as $N$ increases. The numerical values closely follow $\cos^2(2\pi/N)$, with a maximum absolute error of about $1.5\times10^{-3}$.
 
 ## Conclusions
 
-The default rimless wheel has two stable long-term behaviors: a resting
-two-spoke contact configuration and a downhill rolling limit cycle. Their
-basins cover all sampled initial conditions. A steeper slope or a larger
-number of spokes enlarges the rolling basin. Slope changes the cycle speed but
-has essentially no effect on its local multiplier for fixed $N$. Increasing
-the number of spokes reduces collision losses and enlarges the rolling basin,
-but it also moves the Floquet multiplier closer to one and slows local
-convergence.
+The default wheel has two stable long-term behaviors: a two-spoke resting configuration and a downhill rolling limit cycle. Increasing slope or spoke count enlarges the rolling basin. Slope mainly changes the rolling speed, while spoke count also changes the local convergence rate through the Floquet multiplier.
