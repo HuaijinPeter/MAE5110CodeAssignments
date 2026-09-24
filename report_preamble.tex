@@ -1,0 +1,30 @@
+% LaTeX preamble for assignment_2_report.md, injected by build_report.py.
+% Tectonic runs XeTeX, so the Latin Modern OpenType faces can be loaded
+% straight from the TeX tree by filename and Unicode input just works.
+
+\usepackage{fontspec}
+\setmainfont{lmroman10-regular.otf}[
+  BoldFont       = lmroman10-bold.otf,
+  ItalicFont     = lmroman10-italic.otf,
+  BoldItalicFont = lmroman10-bolditalic.otf,
+]
+\setmonofont{lmmono10-regular.otf}[Scale=MatchLowercase]
+
+\usepackage{unicode-math}
+\setmathfont{latinmodern-math.otf}
+
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{microtype}
+
+% Pandoc sets pipe tables as longtables; the widest one overflows at
+% body size, so step every table down one size.
+\usepackage{etoolbox}
+\AtBeginEnvironment{longtable}{\small}
+
+% Figures are saved at 150 dpi, so their natural size is far wider than
+% the text block; pin every one of them to the line width instead.
+\setkeys{Gin}{width=0.92\linewidth,keepaspectratio}
+
+\usepackage[font=small]{caption}
+\captionsetup{skip=4pt}
