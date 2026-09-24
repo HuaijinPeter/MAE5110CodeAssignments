@@ -21,19 +21,20 @@ import sys
 from pathlib import Path
 
 import markdown
-import matplotlib
 import weasyprint
-
-matplotlib.use("Agg")
-
-# Imported after the backend is chosen, so no display is ever needed.
-import matplotlib.pyplot as plt
+from matplotlib import mathtext
+from matplotlib.figure import Figure
+from matplotlib.font_manager import FontProperties
 
 BLOCK_MATH = re.compile(r"\$\$(.+?)\$\$", re.DOTALL)
 INLINE_MATH = re.compile(r"(?<!\$)\$([^$\n]+?)\$(?!\$)")
 
-BLOCK_MATH_FONTSIZE = 13
-INLINE_MATH_FONTSIZE = 11
+# Mathtext's glyphs run a little smaller than the body face, so inline
+# math is nudged up to match it optically rather than nominally.
+INLINE_MATH_FONTSIZE = 11.0
+BLOCK_MATH_FONTSIZE = 13.0
+
+POINTS_PER_INCH = 72
 
 REPORT_STYLE = """
 @page { size: A4; margin: 2cm 1.8cm; }
@@ -42,55 +43,101 @@ h1 { font-size: 20pt; border-bottom: 2px solid #23699b; padding-bottom: 4px; }
 h2 { font-size: 14pt; color: #23699b; margin-top: 1.4em; }
 h3 { font-size: 11.5pt; margin-top: 1.2em; }
 img { max-width: 100%; display: block; margin: 0.8em auto; }
-img.inline-math { display: inline; margin: 0 1px; vertical-align: -0.25em; }
-p.block-math { text-align: center; margin: 1.1em 0; }
-p.block-math img { display: inline; }
+p.block-math { text-align: center; margin: 1.2em 0; }
 table { border-collapse: collapse; margin: 1em auto; font-size: 9.5pt; }
-th, td { border: 1px solid #bbb; padding: 4px 9px; text-align: right; }
+th, td { border: 1px solid #bbb; padding: 4px 9px; text-align: left; }
 th { background: #eef3f7; }
-td:first-child, th:first-child { text-align: left; }
 code { background: #f3f3f3; padding: 1px 3px; font-size: 9.5pt; }
 pre { background: #f6f6f6; padding: 8px; font-size: 9pt; }
 blockquote { border-left: 3px solid #ccc; margin-left: 0; padding-left: 12px; }
 """
 
 
-def render_math_to_data_uri(latex, fontsize):
-    """Rasterise one LaTeX snippet with mathtext and return a data URI."""
-    figure = plt.figure(figsize=(0.01, 0.01))
-    figure.text(0, 0, f"${latex}$", fontsize=fontsize)
+def tighten_index_spacing(latex):
+    """
+    Stop mathtext from spacing an index like a binary operator.
 
-    buffer = io.BytesIO()
+    Written plainly, `k+1` in a subscript is set with the same gaps as a
+    sum; bracing the sign makes it an ordinary symbol, as TeX users do.
+    """
+    for loose, tight in (("_{k+1}", "_{k{+}1}"), ("_{k-1}", "_{k{-}1}")):
+        latex = latex.replace(loose, tight)
 
-    figure.savefig(
-        buffer,
-        format="png",
-        dpi=220,
-        bbox_inches="tight",
-        pad_inches=0.02,
-        transparent=True,
+    return latex
+
+
+def promote_display_fractions(latex):
+    """Switch fractions to display style, as LaTeX does in display math."""
+    return latex.replace(r"\dfrac", r"\frac").replace(r"\frac", r"\dfrac")
+
+
+def measure_math(latex, fontsize):
+    """Return the width, height and baseline depth of one snippet, in points."""
+    parse = mathtext.MathTextParser("path").parse(
+        f"${latex}$",
+        dpi=POINTS_PER_INCH,
+        prop=FontProperties(size=fontsize),
     )
 
-    plt.close(figure)
+    return parse.width, parse.height, parse.depth
+
+
+def render_math_to_data_uri(latex, fontsize, width, height, depth):
+    """
+    Draw one snippet as an SVG sized to exactly (width, height) points.
+
+    The canvas is laid out in points rather than cropped to the ink, so
+    the SVG carries its true typographic size and the baseline sits a
+    known ``depth`` above its bottom edge. That is what lets the HTML
+    place the image inline at the same scale as the surrounding text.
+    """
+    figure = Figure(figsize=(width / POINTS_PER_INCH, height / POINTS_PER_INCH))
+    figure.patch.set_alpha(0.0)
+
+    figure.text(
+        0.0,
+        depth / height,
+        f"${latex}$",
+        fontsize=fontsize,
+        va="baseline",
+        ha="left",
+    )
+
+    buffer = io.BytesIO()
+    figure.savefig(buffer, format="svg", transparent=True)
 
     encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
 
-    return f"data:image/png;base64,{encoded}"
+    return f"data:image/svg+xml;base64,{encoded}"
 
 
 def render_math_to_html(latex, block):
     """Return the HTML for one equation, falling back to its source."""
     fontsize = BLOCK_MATH_FONTSIZE if block else INLINE_MATH_FONTSIZE
 
+    latex = tighten_index_spacing(latex)
+
+    if block:
+        latex = promote_display_fractions(latex)
+
     try:
-        source = render_math_to_data_uri(latex, fontsize)
+        width, height, depth = measure_math(latex, fontsize)
+        source = render_math_to_data_uri(latex, fontsize, width, height, depth)
     except (ValueError, RuntimeError) as error:
         print(f"  could not render '{latex.strip()[:50]}': {error}")
         return f"<code>{latex.strip()}</code>"
 
-    css_class = "block-math-image" if block else "inline-math"
+    if block:
+        # Let a wide equation shrink to the text column instead of
+        # overflowing it; the height follows to keep the aspect ratio.
+        style = f"width:{width:.1f}pt;max-width:100%;height:auto;display:inline"
+    else:
+        style = (
+            f"width:{width:.1f}pt;height:{height:.1f}pt;"
+            f"vertical-align:-{depth:.1f}pt;display:inline;margin:0 1px"
+        )
 
-    return f'<img class="{css_class}" src="{source}" alt="{latex.strip()}">'
+    return f'<img src="{source}" style="{style}" alt="{latex.strip()}">'
 
 
 def extract_math(text):
@@ -103,7 +150,9 @@ def extract_math(text):
     equations = []
 
     def take(match, block):
-        equations.append((match.group(1), block))
+        # LaTeX ignores line breaks, but the math parser does not, so
+        # equations wrapped across source lines are joined up first.
+        equations.append((" ".join(match.group(1).split()), block))
         placeholder = f"MATHPLACEHOLDER{len(equations) - 1}X"
 
         return f"\n\n{placeholder}\n\n" if block else placeholder

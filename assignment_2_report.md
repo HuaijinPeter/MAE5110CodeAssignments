@@ -35,7 +35,7 @@ $$\theta^+ = \theta^- - 2\alpha, \qquad \dot{\theta}^+ = \cos(2\alpha)\,\dot{\th
 Parameters: $g = 9.81~\mathrm{m/s^2}$, $\ell = 1~\mathrm{m}$, $m = 1~\mathrm{kg}$,
 $\gamma = 0.06~\mathrm{rad}$. The two control inputs are bounded by
 
-$$\alpha \in \left[\frac{\pi}{8}, \frac{\pi}{7}\right] = [0.3927,\ 0.4488]~\mathrm{rad},
+$$\alpha \in [\pi/8,\ \pi/7] = [0.3927,\ 0.4488]~\mathrm{rad},
 \qquad
 \tau \in \left[-0.1\,mg\ell,\ 0.05\,mg\ell\right] = [-0.981,\ 0.4905]~\mathrm{N\,m}.$$
 
@@ -264,7 +264,7 @@ largest mismatch between the tabulated and the actual number of steps, over the
 test states that did reach the RoA; a dash means none did.
 
 | points | spacing (rad/s) | round-up: failures | round-up: step err | nearest: failures | nearest: step err |
-|---|---|---|---|---|---|
+|---:|---:|---:|---:|---:|---:|
 | 11 | 0.4429 | 59 | – | 20 | 2 |
 | 21 | 0.2215 | 56 | 0 | 22 | 1 |
 | 31 | 0.1476 | 2 | 0 | 27 | 2 |
@@ -345,7 +345,7 @@ those actions were chosen for, and the maximum-step plan in particular then
 stalls, because it deliberately hugs the slow edge of the feasible set.
 
 | | steps | mid-stance velocities $\dot\theta_k$ (rad/s) | actions $\alpha_k$ (rad) |
-|---|---|---|---|
+|---|---:|---|---|
 | Minimum | 4 | 3.5066, 2.4619, 1.7153, 1.0735, 0.2249 | 0.3927, 0.3927, 0.4114, 0.4394 |
 | Maximum | 6 | 3.5066, 2.4619, 1.7153, 1.1769, 0.7782, 0.4648, 0.1435 | 0.3927 (all six) |
 
