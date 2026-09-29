@@ -19,5 +19,5 @@ uv run python assignment_0.py
 ## Assignments
 
 - [Assignment 0](assignments/assignment_0.md)
-- Assignment 1: [instructions](assignments/assignment_1.md) and
-  [report](assignment_1_report.md)
+- Assignment 1: [instructions](assignments/assignment_1.md) and [report](assignment_1_report.md)
+- [Assignment 2](assignments/assignment_2.md)
