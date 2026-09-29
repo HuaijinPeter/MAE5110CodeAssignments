@@ -18,6 +18,10 @@ def generate_params():
         "ankle_torque": 0.0,  # N m
     }
 
+def generate_initial_condition():
+    """Return the default initial state for the walker."""
+    return np.array([0.0, 3.0])
+
 
 def dynamics(t, state, params):
     angle, angular_v = state

@@ -1,5 +1,28 @@
 import numpy as np
 
+def generate_params():
+    return {
+        "gravity": 9.81,
+        "length": 1.0,
+        "mass": 0.2,
+        "restitution_coeff": 0.0,
+        "N": 8,
+        "Incline": np.pi / 24,
+    }
+
+
+def generate_initial_condition():
+    """Return the default post-impact state for the rimless wheel."""
+    params = generate_params()
+    alpha = np.pi / params["N"]
+    post_impact_angle = alpha - params["Incline"]
+    return np.array([-post_impact_angle, 1.0])
+
+
+def dynamics(t, state, params):
+    return pendulum_dynamics(t, state, params)
+
+
 
 def pendulum_dynamics(t, state, params):
     gravity = params["gravity"]
